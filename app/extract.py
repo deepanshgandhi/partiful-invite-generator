@@ -25,30 +25,47 @@ def extract_event_with_llm(req: ExtractionRequest) -> EventSpec:
     system_prompt = """You are an expert at extracting structured event information from natural language text.
 
 Extract the following fields from the user's text:
-- title: A clear, concise event title
+- title: A clear, concise event title (remove filler words like "Event", "Party", etc. if they're redundant)
 - start: ISO 8601 datetime with timezone (use the provided default_tz if timezone not specified)
 - end: ISO 8601 datetime with timezone (optional, if not mentioned you can estimate duration)
-- location_text: Free-form location description (if mentioned)
+- location_text: EXACT location text only (remove prepositions like "at", "in", "near", etc.)
 - description_md: Clean description in markdown format
 - privacy: "private" or "public" (default to "private" if not specified)
+
+CRITICAL LOCATION RULES:
+- Extract ONLY the actual location name/address
+- Remove prepositions: "at MIT" → "MIT", "in Boston" → "Boston", "near downtown" → "downtown"
+- Remove articles: "at the park" → "park", "in the office" → "office"
+- Keep specific addresses intact: "123 Main St" stays "123 Main St"
+- Examples:
+  * "at John's house" → "John's house"
+  * "at MIT, Cambridge" → "MIT, Cambridge"
+  * "in the conference room" → "conference room"
+  * "near downtown Boston" → "downtown Boston"
 
 Important guidelines:
 - Always include timezone information in datetime fields
 - If only a date is given, use the default_start_time for the time
 - Be conservative with privacy (default to "private")
 - Keep titles concise but descriptive
-- Extract location mentions like "at John's house", "downtown", etc.
+- Extract exact location text without prepositions or articles
 
 Return ONLY a valid JSON object with these fields. Do not include any other text."""
 
-    user_prompt = f"""Extract event information from this text:
+    user_prompt = f"""Extract event information from this text. Pay special attention to location extraction - remove any prepositions or articles.
 
 Text: {req.text}
 
 Default timezone: {req.default_tz}
 Default start time if only date given: {req.default_start_time}
 
-Return the extracted event data as JSON."""
+Examples of correct location extraction:
+- "meeting at MIT Cambridge" → location_text: "MIT Cambridge"
+- "party at John's house" → location_text: "John's house" 
+- "conference in the downtown office" → location_text: "downtown office"
+- "dinner at 123 Main Street" → location_text: "123 Main Street"
+
+Return the extracted event data as JSON with clean, exact field values."""
 
     try:
         response = client.chat.completions.create(

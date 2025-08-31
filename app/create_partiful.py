@@ -298,74 +298,80 @@ async def select_date_in_datepicker(page: Page, target: datetime) -> bool:
 async def set_time_in_datepicker(page: Page, start: datetime, end: Optional[datetime]) -> bool:
     """Set the start (and optionally end) time inside the datepicker panel.
 
-    Tries multiple strategies to locate time inputs near labels like "Start Time".
+    The time picker has individual time slots as clickable elements with format like "6:00PM".
     Returns True if any time was set.
     """
     success = False
-    start_time = start.strftime("%I:%M %p").lstrip("0")
-    end_time = end.strftime("%I:%M %p").lstrip("0") if end else None
+    start_time = start.strftime("%I:%M%p").lstrip("0")  # Format: "6:00PM"
+    end_time = end.strftime("%I:%M%p").lstrip("0") if end else None  # Format: "9:00PM"
 
-    # Strategy 1: label proximity (Start Time)
+    print(f"🕐 Looking for start time: {start_time}")
+    
     try:
-        loc = page.get_by_text("Start Time", exact=False).first
-        if await loc.count() > 0:
-            try:
-                input1 = loc.locator('xpath=following::input[1]')
-                if await input1.count() > 0:
-                    await input1.first.fill(start_time)
-                    print(f"⏱️ Set start time via labeled input: {start_time}")
+        # Look for the specific time element in the time picker
+        # The time picker uses elements with class "ptf-l-cv08W" and contains time text
+        time_elements = await page.query_selector_all('.ptf-l-cv08W')
+        print(f"📋 Found {len(time_elements)} time elements")
+        
+        # Find and click the start time
+        for time_elem in time_elements:
+            time_text = await time_elem.text_content()
+            if time_text and time_text.strip() == start_time:
+                print(f"✅ Found start time element: {time_text}")
+                await time_elem.click()
+                await page.wait_for_timeout(500)  # Wait for selection
+                success = True
+                break
+        
+        if not success:
+            print(f"⚠️ Could not find exact start time {start_time}, trying partial match...")
+            # Try partial matching (e.g., "6:00PM" matches "6:00 PM")
+            start_time_parts = start_time.replace("AM", " AM").replace("PM", " PM")
+            for time_elem in time_elements:
+                time_text = await time_elem.text_content()
+                if time_text and (time_text.strip() == start_time_parts or 
+                                time_text.replace(" ", "") == start_time):
+                    print(f"✅ Found start time with partial match: {time_text}")
+                    await time_elem.click()
+                    await page.wait_for_timeout(500)
                     success = True
-            except Exception:
-                pass
-    except Exception:
-        pass
-
-    # Strategy 2: any visible time-like input in the panel
-    if not success:
-        try:
-            candidates = await page.query_selector_all('[role="dialog"] input, [role="dialog"] [contenteditable="true"]')
-            for c in candidates:
-                try:
-                    ph = (await c.get_attribute('placeholder') or '').lower()
-                    t = (await c.get_attribute('type') or '').lower()
-                    if 'time' in ph or t == 'time':
-                        await c.fill(start_time)
-                        print(f"⏱️ Set start time via panel input: {start_time}")
-                        success = True
-                        break
-                except Exception:
-                    continue
-        except Exception:
-            pass
-
-    # Strategy 3: keyboard navigation from grid into time field
-    if not success:
-        try:
-            # Move focus forward a few times to hit time field
-            for _ in range(4):
-                await page.keyboard.press('Tab')
-                await page.wait_for_timeout(60)
-            await page.keyboard.type(start_time)
-            print(f"⏱️ Set start time via keyboard: {start_time}")
-            success = True
-        except Exception:
-            pass
-
-    # Optionally set end time if present
-    if success and end_time:
-        try:
-            # Try to find an end time control by label
-            loc_end = page.get_by_text("End", exact=False).first
-            # Attempt to navigate to the end time using Tab and then type
-            for _ in range(2):
-                await page.keyboard.press('Tab')
-                await page.wait_for_timeout(50)
-            await page.keyboard.type(end_time)
-            print(f"⏱️ Set end time via keyboard: {end_time}")
-        except Exception:
-            # It's okay if we can't set it; later fallbacks will append "until" text
-            pass
-
+                    break
+        
+        # Try to set end time if we have it and start time was successful
+        if success and end_time:
+            print(f"🕘 Looking for end time: {end_time}")
+            
+            # After selecting start time, check if End time section appears
+            await page.wait_for_timeout(1000)  # Wait for UI to update
+            
+            # Look for End button or End time section
+            try:
+                end_button = await page.query_selector('button:has-text("End")')
+                if end_button:
+                    print("🔘 Clicking End button to enable end time")
+                    await end_button.click()
+                    await page.wait_for_timeout(500)
+                    
+                    # Now look for end time elements
+                    end_time_elements = await page.query_selector_all('.ptf-l-cv08W')
+                    for time_elem in end_time_elements:
+                        time_text = await time_elem.text_content()
+                        if time_text and (time_text.strip() == end_time or 
+                                        time_text.replace(" ", "") == end_time):
+                            print(f"✅ Found end time element: {time_text}")
+                            await time_elem.click()
+                            await page.wait_for_timeout(500)
+                            break
+                    else:
+                        print(f"⚠️ Could not find end time {end_time}")
+                else:
+                    print("ℹ️ End button not found, end time may not be available")
+            except Exception as e:
+                print(f"⚠️ Error setting end time: {e}")
+                
+    except Exception as e:
+        print(f"❌ Error in time selection: {e}")
+        
     return success
 
 async def click_location_save(page: Page) -> bool:
@@ -440,6 +446,8 @@ async def click_location_save(page: Page) -> bool:
 
 async def fill_title(page: Page, title: str) -> None:
     """Fill the event title."""
+    if title.lower().endswith("ntitled event"):
+        title = title[:-10]
     print(f"📝 Filling title: {title}")
     try:
         # Click the title area and clear it
