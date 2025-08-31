@@ -44,6 +44,12 @@ SAVE_DRAFT_BUTTON = 'button:has-text("Save draft")'
 PUBLISH_BUTTON = 'button:has-text("Publish")'
 PREVIEW_BUTTON = 'button:has-text("Preview")'
 
+# Image upload selectors
+IMAGE_UPLOAD_TRIGGER = 'text="Add a cover image"'
+IMAGE_UPLOAD_INPUT = 'input[type="file"]'
+IMAGE_UPLOAD_BUTTON = 'button:has-text("Upload")'
+IMAGE_REMOVE_BUTTON = 'button:has-text("Remove")'
+
 # Fallback selectors for various form states
 GENERIC_TEXT_INPUT = 'input[type="text"]'
 GENERIC_TEXTAREA = 'textarea'

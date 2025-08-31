@@ -5,7 +5,7 @@ ToS-safe approach: headful browser, form fill        except Exception as e:
             print("🔧 Browser will stay open for manual completion.")
             print("💡 Press Ctrl+C in the terminal to close the browser when done.")
             
-            # Keep browser open even on error
+            # Keep browser openeedn even on error
             try:
                 while True:
                     await page.wait_for_timeout(10000)  # Check every 10 seconds
@@ -36,7 +36,7 @@ from typing import Optional
 from playwright.async_api import Browser, Page, async_playwright
 
 from .models import EventSpec
-from .selectors import (
+from .partiful_selectors import (
     DATE_INPUT_SELECTORS,
     DATE_TRIGGER,
     DESCRIPTION_INPUT_SELECTORS,
@@ -100,6 +100,10 @@ async def fill_partiful_form(event: EventSpec, *, wait_for_publish: bool = False
             # 4. Fill description if provided
             if event.description_md:
                 await fill_description(page, event.description_md)
+            
+            # 5. Upload cover image if provided
+            if event.cover_image_path:
+                await upload_cover_image(page, event.cover_image_path)
             
             print("\\n✅ Form filled successfully!")
             print("📝 Please review the form and manually publish when ready.")
@@ -904,6 +908,62 @@ async def fill_description(page: Page, description: str) -> None:
         
     except Exception as e:
         print(f"⚠️  Could not fill description: {e}")
+
+
+async def upload_cover_image(page: Page, image_path: str) -> bool:
+    """Upload a cover image to the event."""
+    print(f"📸 Uploading cover image: {image_path}")
+    try:
+        # Wait a bit for the page to fully load after description
+        await page.wait_for_timeout(1000)
+        
+        # Try to click the "Edit" button for the cover image
+        try:
+            await page.click("text=Edit")
+            print("✅ Edit button clicked")
+        except Exception as e:
+            print(f"⚠️  Could not click Edit button: {e}")
+            # Try alternative approach - look for any clickable element with image-related text
+            try:
+                elements = await page.query_selector_all('*')
+                for element in elements[:50]:  # Check first 50 elements
+                    try:
+                        text = await element.text_content()
+                        if text and any(word in text.lower() for word in ['cover', 'image', 'photo', 'picture', 'upload', 'edit']):
+                            print(f"🔍 Found potential image element with text: '{text}'")
+                            await element.click()
+                            print("✅ Clicked potential image element")
+                            break
+                    except:
+                        continue
+            except Exception as e2:
+                print(f"⚠️  Alternative approach also failed: {e2}")
+                return False
+
+        await page.wait_for_timeout(1500) # Wait for file input to appear
+        
+        # Now try to set the file input directly
+        try:
+            await page.set_input_files("input[type='file']", image_path)
+            print(f"✅ File {image_path} uploaded successfully")
+            await page.wait_for_timeout(2000) # Wait for upload to complete
+            return True
+        except Exception as e:
+            print(f"⚠️  Could not set file input: {e}")
+            # Fallback: try to find file input manually
+            file_input = await page.query_selector('input[type="file"]')
+            if file_input:
+                await file_input.set_input_files(image_path)
+                print(f"✅ File {image_path} uploaded via fallback")
+                await page.wait_for_timeout(2000)
+                return True
+            else:
+                print("❌ File input not found")
+                return False
+                
+    except Exception as e:
+        print(f"❌ Error uploading cover image: {e}")
+        return False
 
 
 def create_partiful_sync(event: EventSpec, *, wait_for_publish: bool = False) -> None:

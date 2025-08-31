@@ -29,10 +29,7 @@ class EventSpec(BaseModel):
         default_factory=list, 
         description="Custom RSVP questions"
     )
-    cover_image_path: Optional[str] = Field(
-        None, 
-        description="Local file path to cover image"
-    )
+    cover_image_path: Optional[str] = "Sundai logo.png"
     
     @field_validator("time_zone")
     @classmethod

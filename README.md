@@ -29,6 +29,16 @@ python -m playwright install chromium
 python -m app.cli "Birthday party at John's house Friday 7pm"
 ```
 
+### CLI with Cover Image
+```bash
+python -m app.cli "Birthday party at John's house Friday 7pm" --cover-image "Sundai logo.png"
+```
+
+### Test Image Upload
+```bash
+python test_image_upload.py
+```
+
 ### FastAPI Server
 ```bash
 python -m app.server
