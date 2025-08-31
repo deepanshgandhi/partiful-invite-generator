@@ -454,7 +454,6 @@ async def fill_title(page: Page, title: str) -> None:
         await page.click(TITLE_SELECTOR)
         
         # Clear any existing text (including "Untitled Event")
-        await page.keyboard.press("Control+a")  # Select all
         await page.keyboard.press("Delete")     # Delete selected text
         
         # Type the new title
