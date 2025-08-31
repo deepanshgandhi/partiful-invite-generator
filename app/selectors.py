@@ -1,20 +1,50 @@
 """CSS selectors for Partiful's Create page.
 
-We only target public web UI controls. Keep all selectors centralized for easy updates.
-URLs are now configured in settings.py.
+Partiful uses a click-to-reveal interface where many fields appear after clicking trigger elements.
+These selectors are based on the actual DOM structure as of 2025.
 """
 
-# These are best-effort, and may require updates if Partiful changes markup.
-# Prefer role-based and placeholder-based selectors when possible.
-TITLE_INPUT = 'input[placeholder="Event name"], input[name="title"], [data-testid="event-title"]'
-DESCRIPTION_TEXTAREA = (
-    'textarea[placeholder="Description"], textarea[name="description"], [data-testid="event-description"]'
-)
-LOCATION_INPUT = 'input[placeholder="Location"], input[name="location"], [data-testid="event-location"]'
-DATE_START_INPUT = 'input[name="start"], [data-testid="event-start"] input'
-DATE_END_INPUT = 'input[name="end"], [data-testid="event-end"] input'
-COVER_IMAGE_BUTTON = 'input[type="file"], [data-testid="cover-upload"] input[type="file"]'
-SAVE_DRAFT_BUTTON = (
-    'button:has-text("Save"), button:has-text("Save Draft"), [data-testid="save-draft"]'
-)
-PUBLISH_BUTTON = 'button:has-text("Publish"), [data-testid="publish-event"]'
+# Title - contenteditable H1 element
+TITLE_SELECTOR = "h1.EditableEventTitle_title__JRGfG"
+
+# Date/Time - trigger button and subsequent inputs
+DATE_TRIGGER = 'text="Set a date"'  # Playwright text selector
+DATE_INPUT_SELECTORS = [
+    'input[type="date"]',
+    'input[type="datetime-local"]', 
+    'input[placeholder*="date"]',
+    'input[placeholder*="Date"]',
+    'input[aria-label*="date"]',
+    '[data-testid*="date"]'
+]
+
+# Location - trigger and input (now with correct selector)
+LOCATION_TRIGGER = 'text="Location"'  # Will click the first Location text
+LOCATION_INPUT_SELECTORS = [
+    'input[placeholder="Place name, address, or link"]',  # Actual Partiful placeholder
+    'input[type="search"]',  # The location input is type="search"
+    'input[placeholder*="Place name"]',
+    'input[placeholder*="address"]',
+    'input[placeholder*="location"]',
+    'input[placeholder*="Location"]',
+    'input[aria-label*="location"]'
+]
+
+# Description - trigger and input area
+DESCRIPTION_TRIGGER = 'text="Add a description"'
+DESCRIPTION_INPUT_SELECTORS = [
+    'textarea[placeholder*="description"]',
+    'textarea[placeholder*="Description"]',
+    '[contenteditable="true"][role="textbox"]',
+    'textarea[aria-label*="description"]'
+]
+
+# Action buttons
+SAVE_DRAFT_BUTTON = 'button:has-text("Save draft")'
+PUBLISH_BUTTON = 'button:has-text("Publish")'
+PREVIEW_BUTTON = 'button:has-text("Preview")'
+
+# Fallback selectors for various form states
+GENERIC_TEXT_INPUT = 'input[type="text"]'
+GENERIC_TEXTAREA = 'textarea'
+GENERIC_CONTENTEDITABLE = '[contenteditable="true"]'
