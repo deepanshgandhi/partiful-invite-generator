@@ -12,19 +12,36 @@ This tool uses **only public web UI automation** with a headful browser:
 
 ## Setup
 
-1. Install dependencies:
+1. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Install Playwright browser:
+3. Install Playwright browser:
 ```bash
 python -m playwright install chromium
 ```
 
+4. Set up environment variables:
+Create a `.env` file with your OpenAI API key:
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
 ## Usage
 
-### CLI
+### Main CLI (Direct Event Creation)
+```bash
+python -m app.create_partiful "AI meetup September 7 2025 from 6 pm to 9 pm at MIT, Cambridge, MA"
+```
+
+### Alternative CLI Interface
 ```bash
 python -m app.cli "Birthday party at John's house Friday 7pm"
 ```
@@ -34,21 +51,17 @@ python -m app.cli "Birthday party at John's house Friday 7pm"
 python -m app.cli "Birthday party at John's house Friday 7pm" --cover-image "Sundai logo.png"
 ```
 
-### Test Image Upload
-```bash
-python test_image_upload.py
-```
-
-### FastAPI Server
+### Extraction-Only Server (FastAPI)
+For just extracting structured data from natural language (no automation):
 ```bash
 python -m app.server
-# Then POST to http://localhost:8000/extract
+# Then POST to http://localhost:8000/extract with JSON: {"text": "event description", "default_tz": "America/New_York"}
 ```
 
-### How it works
+## How it works
 
-1. **Extract**: Parses natural language using `dateparser` to create structured event data
-2. **Automate**: Opens Partiful's create page in a real browser and fills the form
-3. **Manual**: User reviews the form and clicks "Publish" manually
+1. **Extract**: Uses OpenAI GPT to parse natural language and create structured event data
+2. **Automate**: Opens Partiful's create page in a real browser and fills the form automatically
+3. **Manual**: User reviews the filled form and clicks "Publish" manually
 
-This ensures compliance with terms of service while providing automation convenience.
+The browser stays open for manual review to ensure compliance with terms of service while providing automation convenience.
